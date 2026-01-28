@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Minería ETH SC 🚀</title>
+  <style>
+    body {
+      font-family: 'Orbitron', sans-serif;
+      background: radial-gradient(circle at top left, #0d0d0d, #1a1a2e);
+      color: #e0e0e0;
+      text-align: center;
+      padding: 20px;
+    }
+    h1 {
+      font-size: 2.5em;
+      color: #ff00ff;
+      text-shadow: 0 0 10px #ff00ff, 0 0 20px #00ffff;
+      margin-bottom: 10px;
+    }
+    #winner {
+      font-size: 1.3em;
+      margin: 20px 0;
+      padding: 15px;
+      background: rgba(20, 20, 40, 0.8);
+      border: 2px solid #00ffff;
+      border-radius: 10px;
+      box-shadow: 0 0 15px #00ffff;
+      display: inline-block;
+    }
+    h2 {
+      margin-top: 30px;
+      font-size: 1.8em;
+      color: #00ffff;
+      text-shadow: 0 0 10px #00ffff;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    li {
+      background: rgba(30, 30, 60, 0.9);
+      margin: 10px 0;
+      padding: 12px;
+      border-radius: 8px;
+      border-left: 4px solid #ff00ff;
+      transition: transform 0.2s, box-shadow 0.2s;
+      font-size: 1.1em;
+    }
+    li:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 15px #ff00ff;
+    }
+    .bloque-num {
+      font-weight: bold;
+      color: #ffcc00;
+      text-shadow: 0 0 5px #ffcc00;
+    }
+    .ganador {
+      color: #00ffff;
+      font-weight: bold;
+    }
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+  </style>
+</head>
+<body>
+  <h1>Minería de Ethereum Second Chance ⚡</h1>
+  
+<h2>Total tokens minados</h2>
+<p id="contador">Tokens: 0</p>
+
+  <div id="login">
+    <input type="text" id="wallet" placeholder="Ingresa tu wallet">
+    <button onclick="registrarWallet()">Entrar</button>
+  </div>
+
+<div id="usuariosActivos" style="position:absolute; top:10px; right:20px; color:#00ffff; font-weight:bold;">
+  Activos minando: 0
+</div>
+
+  <p id="walletIndicator" style="display:none;"></p>
+
+  <div id="acciones">
+    <button onclick="verBalance()">Ver Balance</button>
+    <button onclick="cashout()">Cashout</button>
+  </div>
+
+  <p id="balance">Tu balance: 0 tokens</p>
+
+  <p id="winner">Esperando próximo bloque...</p>
+  <h2>Historial de bloques</h2>
+  <ul id="historial"></ul>
+
+  <!-- Cargar socket.io -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    let wallet = null;
+
+    function registrarWallet() {
+      wallet = document.getElementById("wallet").value;
+      if(wallet){
+        socket.emit("registrarWallet", wallet);
+        document.getElementById("login").style.display = "none";
+        document.getElementById("walletIndicator").style.display = "block";
+        document.getElementById("walletIndicator").innerText = `🔑 Wallet activa: ${wallet}`;
+        socket.emit("verBalance"); // pedir balance inicial
+      }
+    }
+
+socket.on("usuariosActivos", (data) => {
+  document.getElementById("usuariosActivos").innerText =
+    `Activos minando: ${data.activos}`;
+});
+    function verBalance() {
+      socket.emit("verBalance");
+    }
+
+    function cashout() {
+      const cantidad = prompt("¿Cuántos tokens quieres canjear?");
+      if (cantidad) {
+        socket.emit("cashout", cantidad);
+      }
+    }
+
+    socket.on("balance", (data) => {
+      document.getElementById("balance").innerText =
+        `Tu balance: ${data.balance} tokens`;
+    });
+
+    socket.on("cashoutConfirm", (data) => {
+      alert(`Solicitud de cashout enviada: ${data.cantidad} tokens`);
+    });
+
+    socket.on("bloqueGanado", (data) => {
+      document.getElementById("winner").innerText =
+        `Bloque #${data.bloque} | Ganador: ${data.ganador} (+${data.tokens.toFixed(6)})`;
+
+      const li = document.createElement("li");
+      li.innerText = `Bloque #${data.bloque} → ${data.ganador} (+${data.tokens.toFixed(6)})`;
+      document.getElementById("historial").prepend(li);
+
+      if (wallet && data.ganador === wallet) {
+        document.getElementById("balance").innerText =
+          `Tu balance: ${data.balance.toFixed(6)} tokens`;
+      }
+
+  // 👇 actualizar contador global
+  document.getElementById("contador").innerText =
+    `Total tokens minados: ${data.totalTokens.toFixed(6)}`;
+
+    });
+
+    socket.on("historialCompleto", (data) => {
+      const historialUl = document.getElementById("historial");
+      historialUl.innerHTML = ""; // limpiar lista
+
+      data.forEach(bloque => {
+        const li = document.createElement("li");
+        li.innerText = `Bloque #${bloque.bloque} → ${bloque.ganador} (+${bloque.tokens}) | Balance: ${bloque.balance}`;
+        historialUl.prepend(li);
+      });
+    });
+  </script>
+</body>
+</html>
