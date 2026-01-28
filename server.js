@@ -199,7 +199,7 @@ setInterval(async () => {
     if (recompensaActual < 0) recompensaActual = 0; // nunca negativa
 
   }
-}, 5  * 1000); // cada 5 minutos
+}, 5  * 60 * 1000); // cada 5 minutos
 
 server.listen(3000, () => {
   console.log("Servidor corriendo en http://localhost:3000");
