@@ -139,17 +139,27 @@ io.on("connection", (socket) => {
   socket.on("verBalance", () => {
     const wallet = Object.keys(usuarios).find(w => usuarios[w].socketId === socket.id);
     if (wallet) {
-      socket.emit("balance", { balance: usuarios[wallet].balance });
+      socket.emit("balance", { balance: usuarios[wallet].balance } / 1e6);
     }
   });
 
-  socket.on("cashout", (cantidad) => {
-    const wallet = Object.keys(usuarios).find(w => usuarios[w].socketId === socket.id);
-    if (wallet && cantidad > 0 && cantidad <= usuarios[wallet].balance) {
-      usuarios[wallet].balance -= cantidad;
-      socket.emit("cashoutConfirm", { cantidad });
-      enviarCashoutDiscord(wallet, cantidad);
-    }
+socket.on("cashout", (cantidadTokens) => {
+  const wallet = Object.keys(usuarios).find(w => usuarios[w].socketId === socket.id);
+  if (!wallet) return;
+
+  // convertir tokens a microtokens
+  const cantidadMicro = Math.floor(cantidadTokens * 1e6);
+
+  if (cantidadMicro > 0 && cantidadMicro <= usuarios[wallet].balance) {
+    usuarios[wallet].balance -= cantidadMicro;
+
+    // mostrar siempre en tokens
+    socket.emit("cashoutConfirm", { cantidad: cantidadTokens });
+    enviarCashoutDiscord(wallet, cantidadTokens);
+  } else {
+    socket.emit("cashoutError", "❌ Saldo insuficiente");
+  }
+
   });
 });
 
@@ -189,7 +199,7 @@ setInterval(async () => {
     if (recompensaActual < 0) recompensaActual = 0; // nunca negativa
 
   }
-}, 5 * 60 * 1000); // cada 5 minutos
+}, 5  * 1000); // cada 5 minutos
 
 server.listen(3000, () => {
   console.log("Servidor corriendo en http://localhost:3000");
